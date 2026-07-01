@@ -25,8 +25,8 @@ def generate_drawio(num_nodes=150, output_path="data/Policies/150_node_workflow.
     if len(grid_points) > num_nodes:
         grid_points = grid_points[:num_nodes]
         
-    x_spacing = 450  # Massive horizontal space for arrows
-    y_spacing = 250  # Massive vertical space for arrows
+    x_spacing = 700  # HUGE horizontal space for curves
+    y_spacing = 300  # HUGE vertical space
     
     # New Theme: Cloud Infrastructure & AI Microservices
     words = ["API Gateway", "Load Balancer", "Auth Service", "User DB", "Redis Cache", "Worker Node", 
@@ -48,8 +48,8 @@ def generate_drawio(num_nodes=150, output_path="data/Policies/150_node_workflow.
         node_id = str(i + 2) # IDs start at 2
         col, row = grid_points[i]
         
-        # Stagger rows slightly to prevent straight horizontal lines overlapping
-        y_offset = (col % 2) * 50
+        # Stagger rows heavily to ensure curves don't cross perfectly horizontally
+        y_offset = (col % 2) * 150 + random.randint(-50, 50)
         
         x = col * x_spacing + 100
         y = row * y_spacing + 100 + y_offset
@@ -79,19 +79,24 @@ def generate_drawio(num_nodes=150, output_path="data/Policies/150_node_workflow.
     # 3. Generate Edges (Connections)
     edge_counter = num_nodes + 2
     
-    # Use elbow or orthogonal with entry constraints so they route cleanly into the left side
+    # Use edgeStyle=none so lines draw directly (diagonally) from node to node. 
+    # This mathematically guarantees they won't perfectly overlap on grid tracks like orthogonal lines do!
     edge_styles = [
-        "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#333333;entryX=0;entryY=0.5;entryDx=0;entryDy=0;",
-        "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#0066CC;dashed=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;",
-        "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#CC0000;entryX=0;entryY=0.5;entryDx=0;entryDy=0;"
+        "edgeStyle=none;endArrow=classic;html=1;strokeWidth=2;strokeColor=#333333;curved=1;",
+        "edgeStyle=none;endArrow=classic;html=1;strokeWidth=2;strokeColor=#0066CC;dashed=1;curved=1;",
+        "edgeStyle=none;endArrow=classic;html=1;strokeWidth=2;strokeColor=#CC0000;curved=1;"
     ]
     
-    edge_labels = ["Valid", "Invalid", "Timeout", "Retry", "Cache Hit", "Cache Miss", "Sync", "Async", "Fallback", ""]
+    # EVERY connection must have a label as requested by the user
+    edge_labels = ["Valid", "Invalid", "Timeout", "Retry", "Cache Hit", "Cache Miss", 
+                   "Sync", "Async", "Fallback", "Rollback", "DLQ Route", "Circuit Breaker", 
+                   "Success", "Failed", "Warning", "Rate Limited"]
 
     def add_edge(src, tgt):
         nonlocal edge_counter
         estyle = random.choice(edge_styles)
-        elabel = random.choice(edge_labels) if random.random() > 0.3 else ""
+        # NO empty strings. Every route gets a condition!
+        elabel = random.choice(edge_labels) 
         
         edge = ET.SubElement(root, "mxCell", id=f"edge_{edge_counter}", value=elabel, style=estyle, edge="1", parent="1", source=src, target=tgt)
         ET.SubElement(edge, "mxGeometry", relative="1", **{"as": "geometry"})
@@ -101,18 +106,36 @@ def generate_drawio(num_nodes=150, output_path="data/Policies/150_node_workflow.
     for i in range(num_nodes - 1):
         add_edge(nodes[i], nodes[i+1])
         
-    # Add MASSIVE extra branching
+    # Add extra branching with BACKWARD loops for Fallbacks
+    backward_labels = ["Fallback", "Rollback", "Retry", "Failed", "DLQ Route"]
+    
     for i in range(num_nodes - 1):
-        # Every node sprouts 1 to 3 extra branches to future nodes!
-        extra_branches = random.randint(1, 3)
-        for _ in range(extra_branches):
-            # Target a node somewhere in the next 1 to 2 columns (indices +2 to +15)
-            if i < num_nodes - 16:
-                jump_tgt = i + random.randint(2, 15)
-                add_edge(nodes[i], nodes[jump_tgt])
-            elif i < num_nodes - 3:
-                jump_tgt = i + random.randint(2, (num_nodes - 1) - i)
-                add_edge(nodes[i], nodes[jump_tgt])
+        # 60% chance to sprout 1 extra branch, 15% chance for 2
+        extra = 0
+        r = random.random()
+        if r < 0.15: extra = 2
+        elif r < 0.60: extra = 1
+            
+        for _ in range(extra):
+            estyle = random.choice(edge_styles)
+            elabel = random.choice(edge_labels)
+            
+            # If it's a fallback/retry condition, arrow goes BACKWARDS
+            if elabel in backward_labels and i > 5:
+                # Target a node between the start and current node
+                jump_tgt = random.randint(max(0, i - 15), i - 2)
+            else:
+                # Normal condition, arrow goes FORWARDS
+                if i < num_nodes - 16:
+                    jump_tgt = i + random.randint(2, 10)
+                elif i < num_nodes - 3:
+                    jump_tgt = i + random.randint(2, (num_nodes - 1) - i)
+                else:
+                    continue
+                    
+            edge = ET.SubElement(root, "mxCell", id=f"edge_{edge_counter}", value=elabel, style=estyle, edge="1", parent="1", source=nodes[i], target=nodes[jump_tgt])
+            ET.SubElement(edge, "mxGeometry", relative="1", **{"as": "geometry"})
+            edge_counter += 1
 
     # Write to file
     tree = ET.ElementTree(mxfile)

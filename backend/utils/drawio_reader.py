@@ -141,3 +141,59 @@ if __name__ == "__main__":
         print("Usage: python drawio_reader.py <file.drawio>")
         raise SystemExit(1)
     print(read_drawio(sys.argv[1]))
+
+def parse_drawio_structured(path: str):
+    """
+    Returns a dict with {"nodes": [...], "edges": [...]} for GraphDB ingestion.
+    Each node: {"id": str, "label": str, "type": str}
+    Each edge: {"source": str, "target": str, "label": str}
+    """
+    raw = open(path, encoding="utf-8").read()
+    root = ET.fromstring(raw)
+
+    diagrams = root.findall(".//diagram")
+    if not diagrams:
+        diagrams = [root]
+
+    all_nodes = []
+    all_edges = []
+
+    for d in diagrams:
+        inner = d.find("mxGraphModel")
+        if inner is not None:
+            model = inner
+        elif d.tag == "mxGraphModel":
+            model = d
+        else:
+            decoded = _decompress_diagram((d.text or "").strip())
+            if not decoded:
+                continue
+            model = ET.fromstring(decoded)
+            
+        cells = model.findall(".//mxCell")
+        
+        labels = {}
+        for c in cells:
+            cid = c.get("id")
+            val = _strip_html(c.get("value") or "")
+            if c.get("vertex") == "1":
+                lbl = val if val else f"node_{cid}"
+                labels[cid] = lbl
+                all_nodes.append({
+                    "id": cid,
+                    "label": lbl,
+                    "type": _node_type(c.get("style", ""))
+                })
+        
+        for c in cells:
+            if c.get("edge") == "1":
+                src = c.get("source")
+                tgt = c.get("target")
+                if src in labels and tgt in labels:
+                    all_edges.append({
+                        "source": src,
+                        "target": tgt,
+                        "label": _strip_html(c.get("value") or "")
+                    })
+                    
+    return {"nodes": all_nodes, "edges": all_edges}

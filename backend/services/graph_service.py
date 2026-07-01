@@ -80,3 +80,32 @@ def search_keywords(question):
     except Exception as e:
         logging.warning(f"Neo4j search_keywords failed: {e}")
         return []
+
+def ingest_diagram(file_name, nodes, edges):
+    if not driver:
+        return
+    
+    # Create nodes
+    node_query = """
+    UNWIND $nodes AS n
+    MERGE (node:DiagramNode {id: n.id, file_name: $file_name})
+    SET node.label = n.label,
+        node.type = n.type
+    """
+    
+    # Create edges
+    edge_query = """
+    UNWIND $edges AS e
+    MATCH (src:DiagramNode {id: e.source, file_name: $file_name})
+    MATCH (tgt:DiagramNode {id: e.target, file_name: $file_name})
+    MERGE (src)-[r:ROUTES_TO]->(tgt)
+    SET r.condition = e.label
+    """
+    
+    try:
+        with driver.session() as session:
+            session.run(node_query, {"nodes": nodes, "file_name": file_name})
+            session.run(edge_query, {"edges": edges, "file_name": file_name})
+            logging.info(f"Ingested diagram {file_name} into Neo4j: {len(nodes)} nodes, {len(edges)} edges.")
+    except Exception as e:
+        logging.warning(f"Failed to ingest diagram into Neo4j: {e}")

@@ -38,7 +38,7 @@ def router_node(state: AgentState):
         agent = "email"
     elif any(w in question for w in ["chart", "analytics", "data", "dataset", "excel", "csv", "powerbi", "pbix", "dashboard", "table", "average", "total", "sum", "top", "bottom", "sku", "price", "inventory", "stock", "orders"]):
         agent = "analytics"
-    elif any(w in question for w in ["graph", "node", "connection", "relationship", "dependency", "neo4j"]):
+    elif any(w in question for w in ["graph", "node", "connection", "relationship", "dependency", "neo4j", "diagram", "drawio", "route", "flow", "workflow", "fallback", "path", "branch", "where does"]):
         agent = "graph"
     else:
         # Default to document search which handles generic queries, pdfs, word, images
