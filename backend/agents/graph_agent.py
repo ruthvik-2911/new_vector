@@ -8,31 +8,46 @@ import logging
 OLLAMA_URL = "http://localhost:11434/api/generate"
 MODEL = "llama3.2:3b"
 
+def serialize_neo4j(obj):
+    if hasattr(obj, 'nodes') and hasattr(obj, 'relationships'):
+        return {
+            "nodes": [serialize_neo4j(n) for n in obj.nodes],
+            "edges": [serialize_neo4j(r) for r in obj.relationships]
+        }
+    elif hasattr(obj, 'labels'):
+        return {"labels": list(obj.labels), "properties": dict(obj.items())}
+    elif hasattr(obj, 'type'):
+        return {"type": obj.type, "properties": dict(obj.items())}
+    elif isinstance(obj, list):
+        return [serialize_neo4j(i) for i in obj]
+    elif isinstance(obj, dict):
+        return {k: serialize_neo4j(v) for k, v in obj.items()}
+    else:
+        return obj
+
 def run(question: str, context: dict):
     if not driver:
         return {"agent": "graph", "status": "failed", "context": "Neo4j is offline.", "confidence": 0.0}
         
     schema_context = """
     You are an expert Neo4j Cypher query generator. 
-    The graph database contains workflow diagrams with the following schema:
-    - Node Label: `DiagramNode`
-      - Properties: `id` (string), `label` (string, e.g. 'API Gateway\\n(Load Balancer)'), `type` (string), `file_name` (string)
-    - Relationship: `[:ROUTES_TO]` connects DiagramNodes.
-      - Properties: `condition` (string, e.g. 'Success', 'Fallback', 'Valid')
+    Node Label: `DiagramNode` (Properties: `id`, `label`, `type`, `file_name`)
+    Relationship: `[:ROUTES_TO]` (Properties: `condition`)
     
-    Given a user's question, write ONLY a valid Cypher query that answers the question. 
-    Do not include markdown blocks, explanations, or backticks. Just the raw Cypher string.
+    CRITICAL: You MUST use `WHERE toLower(n.label) CONTAINS '...'` instead of exact `{label: '...'}` because labels contain newlines!
     
-    CRITICAL RULES:
-    1. NEVER use exact matching for labels (e.g. {label: 'LLM Orchestrator'}). The labels contain newlines! ALWAYS use `WHERE toLower(n.label) CONTAINS 'llm orchestrator'`.
-    2. To find connected nodes, you MUST traverse the edge and return the target nodes. 
-       Example: MATCH (n:DiagramNode)-[r:ROUTES_TO]->(m:DiagramNode) WHERE toLower(n.label) CONTAINS 'llm orchestrator' RETURN m.label, r.condition
-    3. To find where a node comes from, traverse backwards: 
-       Example: MATCH (m:DiagramNode)-[r:ROUTES_TO]->(n:DiagramNode) WHERE toLower(n.label) CONTAINS 'database' RETURN m.label, r.condition
-    4. RETURN the matched nodes properties (e.g. `RETURN m.label, m.type, r.condition`). NEVER just `RETURN m` or `RETURN n`.
+    Examples:
+    Q: What nodes are connected to the LLM Orchestrator?
+    Cypher: MATCH (n:DiagramNode)-[r:ROUTES_TO]->(m:DiagramNode) WHERE toLower(n.label) CONTAINS 'llm orchestrator' RETURN n, r, m
+    
+    Q: What is the exact path from 'API Gateway' to the 'Database'?
+    Cypher: MATCH p=(n:DiagramNode)-[r:ROUTES_TO*1..15]->(m:DiagramNode) WHERE toLower(n.label) CONTAINS 'api gateway' AND toLower(m.label) CONTAINS 'database' RETURN p LIMIT 5
+    
+    Q: Explain the entire workflow starting from step 1 to the end.
+    Cypher: MATCH (n:DiagramNode)-[r:ROUTES_TO]->(m:DiagramNode) RETURN n, r, m
     """
     
-    prompt = f"{schema_context}\n\nUser Question: {question}\nCypher Query:"
+    prompt = f"{schema_context}\n\nQ: {question}\nCypher:"
     
     try:
         response = requests.post(
@@ -42,14 +57,13 @@ def run(question: str, context: dict):
         )
         if response.status_code == 200:
             cypher_query = response.json().get("response", "").strip()
-            # Clean up potential markdown formatting if the LLM disobeyed
             cypher_query = re.sub(r"^```cypher\n|```$", "", cypher_query, flags=re.MULTILINE).strip()
             
             logging.info(f"Generated Cypher: {cypher_query}")
             
             with driver.session() as session:
                 result = session.run(cypher_query)
-                records = [record.data() for record in result]
+                records = [serialize_neo4j(record.data()) for record in result]
                 
             if records:
                 return {
