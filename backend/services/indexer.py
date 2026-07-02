@@ -28,7 +28,12 @@ def index_file(path):
         elif ext in [".png", ".jpg", ".jpeg", ".webp", ".bmp"]:
             text = read_diagram(path)
         elif ext == ".drawio":
+            from backend.utils.drawio_reader import read_drawio, parse_drawio_structured
+            from backend.services.graph_service import ingest_diagram
             text = read_drawio(path)
+            structured_data = parse_drawio_structured(path)
+            if structured_data and structured_data.get("nodes"):
+                ingest_diagram(os.path.basename(path), structured_data["nodes"], structured_data["edges"])
         elif ext == ".txt":
             with open(path, "r", encoding="utf-8") as f:
                 text = f.read()
