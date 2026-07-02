@@ -1,5 +1,5 @@
 """
-pdf_smart_reader.py  (v8 - shape detection, X-to-Y segments, explicit fail/success branches, 300+ node)
+pdf_smart_reader.py  (v8.1 - + JSON graph export for query-layer path tracing)
 --------------------------------------------------------------------------------------
 Builds on v4. Adds two things needed for PATH TRACING in chat:
 
@@ -31,6 +31,8 @@ Dependency: pdfplumber, pymupdf (fitz), pypdf.
 
 import math
 import re
+import os
+import json
 import pdfplumber
 import fitz
 from pypdf import PdfReader
@@ -316,6 +318,47 @@ def _emit_paths(edges, nodes_order):
     return "\n".join(out)
 
 
+
+def _export_graph_json(path, nodes_order, edges, stitched, page_count):
+    """Write the reconstructed graph as JSON next to the source PDF, so the query
+    layer can load nodes+edges and compute exact paths on demand (BFS) instead of
+    relying on RAG retrieval. Node ids are the labels; numeric prefix kept as 'num'."""
+    node_list = []
+    for lab in nodes_order:
+        m = re.match(r"\s*(\d+)\s*:", lab)
+        node_list.append({
+            "id": lab,
+            "num": int(m.group(1)) if m else None,
+            "text": _short(lab),
+        })
+    edge_list = []
+    for src_lbl, outs in edges.items():
+        for branch, tgt in outs:
+            edge_list.append({
+                "from": src_lbl,
+                "to": tgt,
+                "branch": branch if branch and branch != "(next)" else None,
+            })
+    graph = {
+        "source_file": os.path.basename(path),
+        "node_count": len(node_list),
+        "edge_count": len(edge_list),
+        "page_count": page_count,
+        "cross_page_links_stitched": stitched,
+        "nodes": node_list,
+        "edges": edge_list,
+    }
+    out_path = os.path.splitext(path)[0] + ".graph.json"
+    try:
+        with open(out_path, "w", encoding="utf-8") as f:
+            json.dump(graph, f, indent=2)
+        print(f"[PDF Smart Reader] Graph exported: {out_path} "
+              f"({len(node_list)} nodes, {len(edge_list)} edges)")
+    except Exception as e:
+        print(f"[PDF Smart Reader] Graph export failed: {e}")
+    return out_path
+
+
 def read_pdf_smart(path):
     # Count node-like SHAPES (rects + curves) with pdfplumber - the reliable
     # diagram signal. Real draw.io PDF exports render connectors as thousands of
@@ -343,6 +386,7 @@ def read_pdf_smart(path):
             pc = len(pdf.pages)
             page_blocks, edges, nodes_order = _build_global_graph(pdf)
         stitched = _stitch_cross_page(edges, nodes_order)
+        _export_graph_json(path, nodes_order, edges, stitched, pc)
         total_edges = sum(len(v) for v in edges.values())
         paths_text = _emit_paths(edges, nodes_order)
 
