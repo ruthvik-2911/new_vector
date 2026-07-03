@@ -1,0 +1,28 @@
+/* metrics.css - styles for the Metrics tab. Uses mx- prefixes to avoid clashes. */
+.metrics-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; margin-bottom:18px; }
+.metrics-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:18px; }
+.metric-card { text-align:left; }
+.metric-num {
+  font-size:34px; font-weight:700;
+  background:linear-gradient(135deg,#6366f1,#8b5cf6);
+  -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+}
+.metric-lbl { font-size:13px; opacity:.6; margin-top:4px; }
+
+.mx-svc { display:flex; align-items:center; gap:10px; padding:7px 0; font-size:14px; }
+.mx-svc-name { text-transform:capitalize; flex:1; }
+.mx-svc-state { font-size:12px; opacity:.6; }
+.mx-dot { width:9px; height:9px; border-radius:50%; display:inline-block; }
+.mx-dot.on { background:#22c55e; box-shadow:0 0 8px #22c55e88; }
+.mx-dot.off { background:#ef4444; box-shadow:0 0 8px #ef444488; }
+
+.mx-bar-row { display:flex; align-items:center; gap:12px; margin:9px 0; }
+.mx-bar-label { font-size:12px; width:150px; flex-shrink:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.mx-bar-track { flex:1; height:8px; background:rgba(0,0,0,0.3); border-radius:6px; overflow:hidden; }
+.mx-bar-fill { height:100%; border-radius:6px; background:linear-gradient(90deg,#6366f1,#8b5cf6); }
+.mx-bar-val { font-size:12px; opacity:.6; width:34px; text-align:right; }
+.mx-empty { opacity:.5; font-size:13px; }
+
+.mx-feed-row { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.08); font-size:13px; text-align:left; }
+.mx-feed-row:last-child { border-bottom:none; }
+.mx-feed-src { opacity:.6; margin-left:auto; max-width:45%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }

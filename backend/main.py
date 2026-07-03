@@ -10,6 +10,7 @@ import os
 import json
 from backend.services.activity_service import get_activities
 from backend.utils.dependencies import QDRANT_CLIENT, COLLECTION_NAME
+from backend.routes import chat, upload, documents, metrics_api
 
 # ----------------------------------
 # FASTAPI APP
@@ -85,6 +86,7 @@ async def sse_events(request: Request):
 app.include_router(chat.router)
 app.include_router(upload.router)
 app.include_router(documents.router)
+app.include_router(metrics_api.router)
 
 # Mount frontend directory
 app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")

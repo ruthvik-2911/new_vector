@@ -6,6 +6,7 @@
     <title>Enterprise Knowledge Assistant</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="metrics.css">
 </head>
 <body>
 
@@ -21,6 +22,7 @@
             <li data-target="documents"><span>📄</span> Documents</li>
             <li data-target="chat"><span>💬</span> AI Chat</li>
             <li data-target="architecture"><span>⚙️</span> Architecture</li>
+            <li data-target="metrics"><span>📊</span> Metrics</li>
         </ul>
         
         <div class="system-status">
@@ -167,8 +169,99 @@
                 </div>
             </div>
         </section>
+
+        <!-- Metrics Section -->
+        <section id="metrics" class="page">
+            <header>
+                <h1>Metrics &amp; Analytics</h1>
+                <p>System usage, agents, and activity at a glance.</p>
+            </header>
+
+            <div class="metrics-grid">
+                <div class="card metric-card">
+                    <h3>Documents Indexed</h3>
+                    <div class="metric-num" id="mx-docs">-</div>
+                    <div class="metric-lbl">profiled documents</div>
+                </div>
+                <div class="card metric-card">
+                    <h3>Vector Chunks</h3>
+                    <div class="metric-num" id="mx-vectors">-</div>
+                    <div class="metric-lbl">embeddings in Qdrant</div>
+                </div>
+                <div class="card metric-card">
+                    <h3>Active Agents</h3>
+                    <div class="metric-num" id="mx-agents">-</div>
+                    <div class="metric-lbl">document · graph · analytics · email</div>
+                </div>
+                <div class="card metric-card">
+                    <h3>Total Events</h3>
+                    <div class="metric-num" id="mx-events">-</div>
+                    <div class="metric-lbl">all logged activity</div>
+                </div>
+                <div class="card metric-card">
+                    <h3>Avg Routing Confidence</h3>
+                    <div class="metric-num" id="mx-conf">-</div>
+                    <div class="metric-lbl" id="mx-conf-sub">resolver match quality</div>
+                </div>
+                <div class="card metric-card">
+                    <h3>Operation Success</h3>
+                    <div class="metric-num" id="mx-success">-</div>
+                    <div class="metric-lbl" id="mx-success-sub">successful vs failed</div>
+                </div>
+                <div class="card metric-card">
+                    <h3>System Health</h3>
+                    <div id="mx-health"></div>
+                </div>
+            </div>
+
+            <div class="metrics-grid-2">
+                <div class="card">
+                    <h3>Agent Usage</h3>
+                    <div id="mx-agent-bars"></div>
+                </div>
+                <div class="card">
+                    <h3>Event Types</h3>
+                    <div id="mx-event-bars"></div>
+                </div>
+            </div>
+
+            <div class="metrics-grid-2" style="margin-top:20px;">
+                <div class="card">
+                    <h3>Routing Confidence Distribution</h3>
+                    <div id="mx-conf-dist"></div>
+                </div>
+                <div class="card">
+                    <h3>Documents by Type</h3>
+                    <div id="mx-doctypes"></div>
+                </div>
+            </div>
+
+            <div class="metrics-grid" style="margin-top:20px;">
+                <div class="card metric-card">
+                    <h3>Diagrams Parsed</h3>
+                    <div class="metric-num" id="mx-diagrams">-</div>
+                    <div class="metric-lbl" id="mx-diagrams-sub">vector workflow diagrams</div>
+                </div>
+                <div class="card metric-card">
+                    <h3>Total Diagram Nodes</h3>
+                    <div class="metric-num" id="mx-dnodes">-</div>
+                    <div class="metric-lbl">across all diagrams</div>
+                </div>
+                <div class="card metric-card">
+                    <h3>Total Connections</h3>
+                    <div class="metric-num" id="mx-dedges">-</div>
+                    <div class="metric-lbl">traced edges</div>
+                </div>
+            </div>
+
+            <div class="card" style="margin-top:20px;">
+                <h3>Recent Activity</h3>
+                <div id="mx-feed"></div>
+            </div>
+        </section>
     </main>
 
     <script src="app.js"></script>
+    <script src="metrics.js"></script>
 </body>
 </html>
