@@ -312,7 +312,7 @@ input[type="file"] {
 }
 
 /* Chat Page */
-.chat-page {
+.chat-page.active {
     display: flex;
     flex-direction: column;
     height: 100%;
