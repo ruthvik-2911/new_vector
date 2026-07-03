@@ -126,10 +126,11 @@ def run(question: str, context: dict):
     
     CRITICAL: You MUST use `WHERE toLower(n.label) CONTAINS '...'` instead of exact `{label: '...'}` because labels contain newlines!
     CRITICAL: Return ONLY the raw Cypher query. Do not include any explanations, introductory text, or markdown code blocks like ```cypher. Just the raw text of the query.
+    CRITICAL: Ignore words like 'diagram', 'workflow', or 'architecture' when extracting node names. They refer to the file itself, NOT the nodes.
     
     Examples:
-    Q: What nodes are connected to the LLM Orchestrator?
-    Cypher: MATCH (n:DiagramNode)-[r:ROUTES_TO]->(m:DiagramNode) WHERE toLower(n.label) CONTAINS 'llm orchestrator' RETURN n, r, m
+    Q: What nodes are connected to the LLM Orchestrator in the architecture diagram?
+    Cypher: MATCH (n:DiagramNode)-[r:ROUTES_TO]-(m:DiagramNode) WHERE toLower(n.label) CONTAINS 'llm orchestrator' OR toLower(m.label) CONTAINS 'llm orchestrator' RETURN n, r, m
     
     Q: What is the exact path from 'API Gateway' to the 'Database'?
     Cypher: MATCH p=(n:DiagramNode)-[r:ROUTES_TO*1..15]->(m:DiagramNode) WHERE toLower(n.label) CONTAINS 'api gateway' AND toLower(m.label) CONTAINS 'database' RETURN p LIMIT 5
