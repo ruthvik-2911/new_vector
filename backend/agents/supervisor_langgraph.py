@@ -91,9 +91,10 @@ Context from {state.get('agent_name')} agent:
 Question: {question}
 
 Instructions:
-- Answer ONLY using the context above. Do NOT invent information.
-- If the answer is not in the context, say: "I could not find this information."
+- Answer using the provided context.
 - Be concise and professional.
+- It is okay to match partial names (e.g. "Kafka" matches "Kafka Queue").
+- If the answer is truly not in the context, say: "I could not find this information."
 """
 
     try:

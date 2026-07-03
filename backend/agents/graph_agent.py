@@ -125,6 +125,7 @@ def run(question: str, context: dict):
     Relationship: `[:ROUTES_TO]` (Properties: `condition`)
     
     CRITICAL: You MUST use `WHERE toLower(n.label) CONTAINS '...'` instead of exact `{label: '...'}` because labels contain newlines!
+    CRITICAL: Return ONLY the raw Cypher query. Do not include any explanations, introductory text, or markdown code blocks like ```cypher. Just the raw text of the query.
     
     Examples:
     Q: What nodes are connected to the LLM Orchestrator?
@@ -147,6 +148,16 @@ def run(question: str, context: dict):
         )
         if response.status_code == 200:
             cypher_query = response.json().get("response", "").strip()
+            # Extract code block if the LLM still outputs it
+            if "```cypher" in cypher_query:
+                match = re.search(r"```cypher(.*?)```", cypher_query, re.DOTALL)
+                if match:
+                    cypher_query = match.group(1).strip()
+            elif "```" in cypher_query:
+                match = re.search(r"```(.*?)```", cypher_query, re.DOTALL)
+                if match:
+                    cypher_query = match.group(1).strip()
+            
             cypher_query = re.sub(r"^```cypher\n|```$", "", cypher_query, flags=re.MULTILINE).strip()
             
             logging.info(f"Generated Cypher: {cypher_query}")
@@ -159,7 +170,19 @@ def run(question: str, context: dict):
             
             final_context_str = ""
             if records:
-                final_context_str += f"Cypher Execution Result (Neo4j / DrawIO):\n{json.dumps(records, indent=2)}\n\n"
+                final_context_str += "Cypher Execution Result (Neo4j / DrawIO):\n"
+                for record in records:
+                    n_label = record.get("n", {}).get("label", "Unknown").replace("\n", " ")
+                    m_label = record.get("m", {}).get("label", "Unknown").replace("\n", " ")
+                    
+                    if "p" in record:
+                        # Path query
+                        final_context_str += f"- Path found from {n_label} to {m_label}\n"
+                    else:
+                        # Direct relationship
+                        final_context_str += f"- Node '{n_label}' routes to Node '{m_label}'\n"
+                final_context_str += "\n"
+                
             if bfs_context:
                 final_context_str += f"BFS Computed Paths (PDF JSON Graphs):\n{bfs_context}\n\n"
                 
