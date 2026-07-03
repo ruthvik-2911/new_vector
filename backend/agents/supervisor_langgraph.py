@@ -36,10 +36,10 @@ def router_node(state: AgentState):
     # Simple heuristic router for speed and reliability, falling back to LLM if needed
     if any(w in question for w in ["email", "inbox", "message", "send", "mail"]):
         agent = "email"
-    elif any(w in question for w in ["chart", "analytics", "data", "dataset", "excel", "csv", "powerbi", "pbix", "dashboard", "table", "average", "total", "sum", "top", "bottom", "sku", "price", "inventory", "stock", "orders"]):
-        agent = "analytics"
     elif any(w in question for w in ["graph", "node", "connection", "relationship", "dependency", "neo4j", "diagram", "drawio", "route", "flow", "workflow", "fallback", "path", "branch", "where does"]):
         agent = "graph"
+    elif any(w in question.split() for w in ["average", "count", "sum", "total", "plot", "chart", "trend", "analytics", "data", "dataset", "excel", "csv", "powerbi", "pbix", "dashboard", "table", "sku", "price", "inventory", "stock", "orders"]):
+        agent = "analytics"
     else:
         # Default to document search which handles generic queries, pdfs, word, images
         agent = "document"
